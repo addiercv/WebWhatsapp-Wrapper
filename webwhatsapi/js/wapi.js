@@ -25,7 +25,8 @@ if (!window.Store) {
                 { id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null },
                 { id: "SendTextMsgToChat", conditions: (module) => (module.sendTextMsgToChat) ? module.sendTextMsgToChat : null },
                 { id: "SendSeen", conditions: (module) => (module.sendSeen) ? module.sendSeen : null },
-                { id: "sendDelete", conditions: (module) => (module.sendDelete) ? module.sendDelete : null }
+                { id: "sendDelete", conditions: (module) => (module.sendDelete) ? module.sendDelete : null },
+                { id: "FindChat", conditions: (module) => (module && module.findChat)?module : null}
             ];
         for (let idx in modules) {
             if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
@@ -47,6 +48,12 @@ if (!window.Store) {
 
         let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
         window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
+        window.Store.Chat._find = e => {
+            const target = window.Store.Chat.get(e)
+            return target ? Promise.resolve(target) : Promise.resolve({
+                id: e
+            })
+        }
         neededObjects.splice(neededObjects.indexOf(neededStore), 1);
         neededObjects.forEach((needObj) => {
             if (needObj.foundedModule) {
@@ -65,7 +72,7 @@ if (!window.Store) {
             webpackJsonp([], {'parasite': (x, y, z) => getStore(z)}, ['parasite']);
         } else {
             let tag = new Date().getTime();
-			webpackChunkbuild.push([
+			webpackChunkwhatsapp_web_client.push([
 				["parasite" + tag],
 				{
 
@@ -739,7 +746,7 @@ window.WAPI.sendMessageToID = function (id, message, done) {
             if (contact.status === 404) {
                 done(true);
             } else {
-                Store.Chat.find(contact.jid).then(chat => {
+                Store.FindChat.findChat(contact.jid).then(chat => {
                     chat.sendMessage(message);
                     return true;
                 }).catch(reject => {
@@ -1231,7 +1238,7 @@ window.WAPI.sendImage = function (imgBase64, chatid, filename, caption, done) {
 //var idUser = new window.Store.UserConstructor(chatid);
 var idUser = new window.Store.UserConstructor(chatid, { intentionallyUsePrivateConstructor: true });
 // create new chat
-return Store.Chat.find(idUser).then((chat) => {
+return Store.FindChat.findChat(idUser).then((chat) => {
     var mediaBlob = window.WAPI.base64ImageToFile(imgBase64, filename);
     var mc = new Store.MediaCollection(chat);
     mc.processAttachments([{file: mediaBlob}, 1], chat, 1).then(() => {
